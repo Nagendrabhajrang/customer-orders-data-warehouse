@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Orders Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="layout">
+    <aside class="sidebar">
+        <h2>Order<span>Analytics</span></h2>
+        <p class="subtitle">Data Warehouse</p>
+        <nav>
+            <a class="active" href="/">Dashboard</a>
+            <a href="#sales">Sales Analysis</a>
+            <a href="#orders">Orders</a>
+            <a href="#insights">Business Insights</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <header>
+            <div>
+                <h1>Customer Orders Dashboard</h1>
+                <p>Business insights from customer and order data</p>
+            </div>
+            <div class="badge">Live SQL Data</div>
+        </header>
+
+        <section class="cards">
+            <div class="card">
+                <div class="label">Total Customers</div>
+                <div class="value">{{ total_customers }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Total Orders</div>
+                <div class="value">{{ total_orders }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Total Sales</div>
+                <div class="value">₹{{ "{:,.0f}".format(total_sales) }}</div>
+            </div>
+            <div class="card">
+                <div class="label">Delivered Orders</div>
+                <div class="value">{{ delivered_orders }}</div>
+            </div>
+        </section>
+
+        <section class="grid" id="sales">
+            <div class="panel">
+                <h2>Sales by Category</h2>
+                <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="panel">
+                <h2>Order Status</h2>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </section>
+
+        <section class="grid" id="insights">
+            <div class="panel">
+                <h2>Top Products</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>Product</th><th>Sales</th></tr>
+                        </thead>
+                        <tbody>
+                        {% for row in product_sales %}
+                            <tr>
+                                <td>{{ row["product_name"] }}</td>
+                                <td>₹{{ "{:,.0f}".format(row["sales"]) }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Business Insights</h2>
+                <div class="insight">
+                    <strong>Customer Base</strong>
+                    <p>{{ total_customers }} customers are currently available in the warehouse.</p>
+                </div>
+                <div class="insight">
+                    <strong>Order Performance</strong>
+                    <p>{{ delivered_orders }} orders have been delivered.</p>
+                </div>
+                <div class="insight">
+                    <strong>Revenue</strong>
+                    <p>Non-cancelled orders contribute ₹{{ "{:,.0f}".format(total_sales) }} in sales.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel" id="orders">
+            <h2>Recent Orders</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in recent_orders %}
+                        <tr>
+                            <td>#{{ row["order_id"] }}</td>
+                            <td>{{ row["customer_name"] }}</td>
+                            <td>{{ row["order_date"] }}</td>
+                            <td>
+                                <span class="status {{ row['order_status']|lower }}">
+                                    {{ row["order_status"] }}
+                                </span>
+                            </td>
+                            <td>₹{{ "{:,.0f}".format(row["amount"]) }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+const categoryData = {{ category_sales | map(attribute='category') | list | tojson }};
+const categoryValues = {{ category_sales | map(attribute='sales') | list | tojson }};
+
+new Chart(document.getElementById('categoryChart'), {
+    type: 'bar',
+    data: {
+        labels: categoryData,
+        datasets: [{
+            label: 'Sales',
+            data: categoryValues,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+const statusLabels = {{ status_data | map(attribute='order_status') | list | tojson }};
+const statusValues = {{ status_data | map(attribute='count') | list | tojson }};
+
+new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: statusLabels,
+        datasets: [{
+            data: statusValues,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true
+    }
+});
+</script>
+
+</body>
+</html>
